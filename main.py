@@ -25,6 +25,8 @@ class env:
         self.old_states = []
         self.new_states = []
 
+        self.allow_rendering = False
+
         pygame.mixer.pre_init(44100, -16, 2, 2048) # fix audio delay
         pygame.init()
 
@@ -34,8 +36,8 @@ class env:
         # background_col = (235,235,235)
         self.background_col = (255,255,255)
 
-        self.screen = pygame.display.set_mode(self.scr_size)
         self.clock = pygame.time.Clock()
+        self.screen = pygame.display.set_mode(self.scr_size)
         pygame.display.set_caption("T-Rex Rush")
 
         temp_images,temp_rect = self.load_sprite_sheet('numbers.png',12,1,11,int(11*6/5),-1)
@@ -47,6 +49,22 @@ class env:
         self.HI_image.blit(temp_images[11],temp_rect)
         self.HI_rect.top = self.height*0.1
         self.HI_rect.left = self.width*0.73
+
+
+    def render(self):
+        if pygame.display.get_surface() != None:
+            self.screen.fill(self.background_col)
+            self.new_ground.draw()
+            # clouds.draw(screen)
+            self.scb.draw()
+            if self.high_score != 0:
+                self.highsc.draw()
+                self.screen.blit(self.HI_image,self.HI_rect)
+            self.cacti.draw(self.screen)
+            self.crows.draw(self.screen)
+            self.playerDino.draw()
+
+            pygame.display.update()
 
     def load_sprite_sheet(
             self,
@@ -89,47 +107,6 @@ class env:
 
         return sprites,sprite_rect
 
-    def introscreen(self):
-        temp_dino = Dino(44,47)
-        temp_dino.isBlinking = False
-        gameStart = True
-
-
-        temp_ground,temp_ground_rect = load_sprite_sheet('ground.png',15,1,-1,-1,-1)
-        temp_ground_rect.left = width/20
-        temp_ground_rect.bottom = height
-
-        while not gameStart:
-            if pygame.display.get_surface() == None:
-                print("Couldn't load display surface")
-                return True
-            else:
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        return True
-                    if event.type == pygame.KEYDOWN:
-                        if event.key == pygame.K_SPACE or event.key == pygame.K_UP:
-                            temp_dino.isJumping = True
-                            temp_dino.isBlinking = False
-                            temp_dino.movement[1] = -1*temp_dino.jumpSpeed
-
-            temp_dino.update()
-
-            if pygame.display.get_surface() != None:
-                screen.fill(background_col)
-                screen.blit(temp_ground[0],temp_ground_rect)
-                if temp_dino.isBlinking:
-                    pass
-                    # screen.blit(logo,logo_rect)
-                    # screen.blit(callout,callout_rect)
-                temp_dino.draw()
-
-                pygame.display.update()
-
-            clock.tick(self.FPS)
-            if temp_dino.isJumping == False and temp_dino.isBlinking == False:
-                gameStart = True
-
     def reset(self):
         self.gamespeed = 4
         self.startMenu = False
@@ -152,6 +129,9 @@ class env:
 
         Cactus.containers = self.cacti
         Crow.containers = self.crows
+
+        self.old_states = []
+        self.new_states = []
 
         self.old_states.append(self.new_ground.speed)
         self.old_states.append(np.digitize(self.nearest, self.discrete_spaces))
@@ -239,19 +219,9 @@ class env:
         # print('Pos: ',playerDino.rect[1], playerDino.rect[2]) ## changes rect[1] - when jumping, rect[2] - when crouch
         self.highsc.update(self.high_score)
 
-        if pygame.display.get_surface() != None:
-            self.screen.fill(self.background_col)
-            self.new_ground.draw()
-            # clouds.draw(screen)
-            self.scb.draw()
-            if self.high_score != 0:
-                self.highsc.draw()
-                self.screen.blit(self.HI_image,self.HI_rect)
-            self.cacti.draw(self.screen)
-            self.crows.draw(self.screen)
-            self.playerDino.draw()
+        if self.allow_rendering:
+            self.render()
 
-            pygame.display.update()
         self.clock.tick(self.FPS)
 
         if self.playerDino.isDead:
@@ -273,11 +243,7 @@ class env:
         # while not self.gameQuit:
         #     while not self.gameOver:
         self.t_reward = 0
-        if pygame.display.get_surface() == None:
-            print("Couldn't load display surface")
-            self.gameQuit = True
-            self.gameOver = True
-        else:
+        if True:
             if action == 1: ## event.key == pygame.K_SPACE
                 self.action_complete = False
                 if self.playerDino.rect.bottom == int(0.98*self.height):
@@ -331,6 +297,7 @@ if __name__=='__main__':
     i = 0
     # while True:
     x.play()
+    x.allow_rendering = False
     while True:
         action = int(input('esxa: '))
 
@@ -338,8 +305,9 @@ if __name__=='__main__':
         if(action == 4):
             break
         print(states, S_, R, D)
-        states = S_
 
         if D:
             states = x.reset()
             x.play()
+        else:
+            states = S_
