@@ -10,15 +10,16 @@ from crows import Crow
 from ground import Ground
 from scoreboard import Scoreboard
 
-class env:
+class DinoGameEnv:
     def __init__(self):
         self.crow_height = 0.0
         self.i = 0
         self.high_score = 0
         self.nearest = 800
+        self.second_nearest = 1000
         self.t_reward = 0
 
-        self.discrete_spaces = np.linspace(76, 640, num=100)
+        self.discrete_spaces = np.linspace(0, 640, num=100)
 
         self.action_complete = True
 
@@ -49,7 +50,6 @@ class env:
         self.HI_image.blit(temp_images[11],temp_rect)
         self.HI_rect.top = self.height*0.1
         self.HI_rect.left = self.width*0.73
-
 
     def render(self):
         if pygame.display.get_surface() != None:
@@ -121,6 +121,7 @@ class env:
         self.t_reward = 0
 
         self.nearest = 800
+        self.second_nearest = 1000
         self.action_complete = True
 
         self.cacti = pygame.sprite.Group()
@@ -133,12 +134,16 @@ class env:
         self.old_states = []
         self.new_states = []
 
-        self.old_states.append(self.new_ground.speed)
+        self.old_states.append(self.new_ground.speed/-self.gamespeed)
         self.old_states.append(np.digitize(self.nearest, self.discrete_spaces))
+        self.old_states.append(np.digitize(self.second_nearest, self.discrete_spaces))
         self.old_states.append(self.crow_height)
-        self.old_states.append("Crouch" if self.playerDino.rect[2] != 44 else " standing")
+        # self.old_states.append("Crouch" if self.playerDino.rect[2] != 44 else " standing")
+        self.old_states.append(0 if self.playerDino.rect[2] != 44 else 1)
 
-        return self.old_states
+        self.play()
+
+        return np.array(self.old_states, dtype=np.float64)
 
     def play(self):
         for c in self.cacti:
@@ -151,6 +156,7 @@ class env:
             if pygame.sprite.collide_mask(self.playerDino,p):
                 self.playerDino.isDead = True
 
+
         if len(self.cacti) < 2:
             if len(self.cacti) == 0:
                 self.last_obstacle.empty()
@@ -161,9 +167,9 @@ class env:
                         self.last_obstacle.empty()
                         self.last_obstacle.add(Cactus(self.gamespeed, 40, 40))
 
-        if len(self.crows) == 0 and random.randrange(0,200) == 10 and self.counter > 500:
+        if len(self.crows) == 0 and random.randrange(0,200) == 10 and self.counter > 1:
             for l in self.last_obstacle:
-                if l.rect.right < width*0.8:
+                if l.rect.right < self.width*0.8:
                     self.last_obstacle.empty()
                     self.last_obstacle.add(Crow(self.gamespeed, 46, 40))
 
@@ -172,20 +178,27 @@ class env:
         self.crows.update()
         self.new_ground.update()
         self.scb.update(self.playerDino.score)
+
         all_loc = []
         for c in self.cacti:
-            if(c.rect.left < 72):
-                all_loc.append(1000)
-            else:
-                all_loc.append(c.rect.left)
+            # print(self.playerDino.rect.width, c.rect.width)
+            all_loc.append(c.rect.left)
+            # if(c.rect.left < 72):
+            #     all_loc.append(1000)
+            # else:
+            #     all_loc.append(c.rect.left)
 
         h = []
         for p in self.crows:
-            if(p.rect.left < 72):
-                all_loc.append(1000)
-            else:
-                all_loc.append(p.rect.left)
-                h.append(p.rect.centery)
+            all_loc.append(p.rect.left)
+            # print(p.rect.width)
+            # if(p.rect.left < 72):
+            #     all_loc.append(1000)
+            # else:
+            #     all_loc.append(p.rect.left)
+            #     h.append(p.rect.centery)
+
+        print(self.playerDino.rect.right, all_loc, self.new_ground.rect.right, self.new_ground.rect.left)
 
         try:
             self.crow_height = min(h)
@@ -193,18 +206,25 @@ class env:
         except:
             self.crow_height = 0.0
             if len(all_loc) == 0:
-                self.t_reward += 99
                 self.nearest = 800
             else:
                 self.nearest = min(all_loc)
 
         self.new_states = []
 
-        self.new_states.append(self.new_ground.speed)
+        self.new_states.append(self.new_ground.speed/-self.gamespeed)
         self.new_states.append(np.digitize(self.nearest, self.discrete_spaces))
+        if(len(all_loc) > 1):
+            all_loc.remove(self.nearest)
+            self.second_nearest = min(all_loc)
+            self.new_states.append(np.digitize(self.second_nearest, self.discrete_spaces) - np.digitize(self.nearest, self.discrete_spaces))
+        else:
+            self.second_nearest = 1000
+            self.new_states.append(np.digitize(self.second_nearest, self.discrete_spaces))
         self.new_states.append(self.crow_height)
         # self.new_states.append("Jump" if self.playerDino.rect[1] != 100 else "running")
-        self.new_states.append("Crouch" if self.playerDino.rect[2] != 44 else " standing")
+        # self.new_states.append("Crouch" if self.playerDino.rect[2] != 44 else " standing")
+        self.new_states.append(0 if self.playerDino.rect[2] != 44 else 1)
 
         # if((0 < (100 - self.playerDino.rect[1]) <= 10) and self.i == 0):
         #     self.t_reward += 1
@@ -213,10 +233,10 @@ class env:
         if(self.playerDino.rect[1] == 100 and (self.playerDino.rect[2] == 44 or self.playerDino.rect[2] == 59)):
             self.i = 0
             self.action_complete = True
-            # print("new states: ", self.new_states, self.action_complete)
+
         if(self.playerDino.rect[1] != 100):
             self.i += 1
-        # print('Pos: ',playerDino.rect[1], playerDino.rect[2]) ## changes rect[1] - when jumping, rect[2] - when crouch
+
         self.highsc.update(self.high_score)
 
         if self.allow_rendering:
@@ -228,7 +248,7 @@ class env:
             # print('Reward: -1000')
 
             # print("final_ states: ", self.new_states)
-            print("<<<<<<GAME OVER>>>>>>>")
+            # print("<<<<<<GAME OVER>>>>>>>")
             self.gameOver = True
             # self.reset()
 
@@ -244,7 +264,7 @@ class env:
         #     while not self.gameOver:
         self.t_reward = 0
         if True:
-            if action == 1: ## event.key == pygame.K_SPACE
+            if action == 0: ## event.key == pygame.K_SPACE
                 self.action_complete = False
                 if self.playerDino.rect.bottom == int(0.98*self.height):
                     self.playerDino.isJumping = True
@@ -258,13 +278,13 @@ class env:
                         self.action_complete = False
                         break
 
-            if action == 2:      ## event.key == pygame.K_DOWN
+            if action == 1:      ## event.key == pygame.K_DOWN
                 if not (self.playerDino.isJumping and self.playerDino.isDead):
                     self.playerDino.isDucking = True
 
                 self.play()
 
-            if action == 3:
+            if action == 2:
                 self.playerDino.isDucking = False
                 self.play()
 
@@ -280,34 +300,39 @@ class env:
 
             self.t_reward -= 101
 
-        return self.new_states, self.t_reward, self.gameOver
+        return np.array(self.new_states, dtype=np.float64), self.t_reward, self.gameOver
 
         # self.close()
 
     def close(self):
+        pygame.display.quit()
         pygame.quit()
         quit()
 
 
-
 if __name__=='__main__':
-    x = env()
+
+    ## SAMPLE RUN OF THE ENV
+    x = DinoGameEnv()
     states = x.reset()
     print(states)
-    i = 0
-    # while True:
-    x.play()
-    x.allow_rendering = False
+
+    x.allow_rendering = True
+
     while True:
-        action = int(input('esxa: '))
+        # action = np.random.choice(np.arange(0,4))
+        action = int(input('input action: '))
 
         S_ , R,  D = x.step(action)
+
         if(action == 4):
+            x.close()
             break
+
         print(states, S_, R, D)
 
         if D:
             states = x.reset()
-            x.play()
+            # x.play()
         else:
             states = S_

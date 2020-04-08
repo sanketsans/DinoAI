@@ -1,14 +1,9 @@
 import pygame
 from pygame import *
 import os, random
-from dino import screen
 
 pygame.mixer.pre_init(44100, -16, 2, 2048) # fix audio delay
 pygame.init()
-
-scr_size = (width,height) = (600,150)
-FPS = 60
-gravity = 0.6
 
 black = (0,0,0)
 white = (255,255,255)
@@ -22,16 +17,21 @@ high_score = 0
 
 class Scoreboard():
     def __init__(self,x=-1,y=-1):
+        self.scr_size = (600,150)
+        self.width = 600
+        self.height = 150
+
         self.score = 0
+        self.screen = pygame.display.set_mode(self.scr_size)
         self.tempimages,self.temprect = self.load_sprite_sheet('numbers.png',12,1,11,int(11*6/5),-1)
         self.image = pygame.Surface((55,int(11*6/5)))
         self.rect = self.image.get_rect()
         if x == -1:
-            self.rect.left = width*0.89
+            self.rect.left = self.width*0.89
         else:
             self.rect.left = x
         if y == -1:
-            self.rect.top = height*0.1
+            self.rect.top = self.height*0.1
         else:
             self.rect.top = y
 
@@ -91,7 +91,7 @@ class Scoreboard():
             return digits
 
     def draw(self):
-        screen.blit(self.image,self.rect)
+        self.screen.blit(self.image,self.rect)
 
     def update(self,score):
         score_digits = self.extractDigits(score)

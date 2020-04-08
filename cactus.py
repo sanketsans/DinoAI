@@ -1,7 +1,6 @@
 import pygame
 from pygame import *
 import os, random
-from dino import screen
 
 pygame.mixer.pre_init(44100, -16, 2, 2048) # fix audio delay
 pygame.init()
@@ -14,6 +13,7 @@ gravity = 0.6
 
 class Cactus(pygame.sprite.Sprite):
     def __init__(self,speed=5,sizex=-1,sizey=-1):
+        self.screen = pygame.display.set_mode(scr_size)
         pygame.sprite.Sprite.__init__(self,self.containers)
         self.images,self.rect = self.load_sprite_sheet('cacti-small.png',3,1,sizex,sizey,-1)
         self.rect.bottom = int(0.98*height)
@@ -63,7 +63,7 @@ class Cactus(pygame.sprite.Sprite):
         return sprites,sprite_rect
 
     def draw(self):
-        screen.blit(self.image,self.rect)
+        self.screen.blit(self.image,self.rect)
 
     def update(self):
         self.rect = self.rect.move(self.movement)

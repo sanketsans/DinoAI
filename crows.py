@@ -1,24 +1,25 @@
 import pygame
 from pygame import *
 import os, random
-from dino import screen
 
 pygame.mixer.pre_init(44100, -16, 2, 2048) # fix audio delay
 pygame.init()
 
-scr_size = (width,height) = (600,150)
-FPS = 60
-gravity = 0.6
 
 # screen = pygame.display.set_mode(scr_size)
 
 class Crow(pygame.sprite.Sprite):
     def __init__(self,speed=5,sizex=-1,sizey=-1):
+        self.scr_size = (600,150)
+        self.width = 600
+        self.height = 150
+
+        self.screen = pygame.display.set_mode(self.scr_size)
         pygame.sprite.Sprite.__init__(self,self.containers)
         self.images,self.rect = self.load_sprite_sheet('ptera.png',2,1,sizex,sizey,-1)
-        self.crow_height = [height*0.82,height*0.75,height*0.60]
+        self.crow_height = [self.height*0.82,self.height*0.75,self.height*0.60]
         self.rect.centery = self.crow_height[random.randrange(0,3)]
-        self.rect.left = width + self.rect.width
+        self.rect.left = self.width + self.rect.width
         self.image = self.images[0]
         self.movement = [-1*speed,0]
         self.index = 0
@@ -66,7 +67,7 @@ class Crow(pygame.sprite.Sprite):
         return sprites,sprite_rect
 
     def draw(self):
-        screen.blit(self.image,self.rect)
+        self.screen.blit(self.image,self.rect)
 
     def update(self):
         if self.counter % 10 == 0:

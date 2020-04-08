@@ -9,14 +9,15 @@ scr_size = (width,height) = (600,150)
 FPS = 60
 gravity = 0.6
 
-screen = pygame.display.set_mode(scr_size)
+# screen = pygame.display.set_mode(scr_size)
 
 class Dino():
     def __init__(self,sizex=-1,sizey=-1):
+        self.screen = pygame.display.set_mode(scr_size)
         self.images,self.rect = self.load_sprite_sheet('dino.png',5,1,sizex,sizey,-1)
         self.images1,self.rect1 = self.load_sprite_sheet('dino_ducking.png',2,1,59,sizey,-1)
         self.rect.bottom = int(0.98*height)
-        self.rect.left = width/15
+        self.rect.left = width / 15
         self.image = self.images[0]
         self.index = 0
         self.counter = 0
@@ -73,7 +74,7 @@ class Dino():
         return sprites,sprite_rect
 
     def draw(self):
-        screen.blit(self.image,self.rect)
+        self.screen.blit(self.image,self.rect)
 
     def checkbounds(self):
         if self.rect.bottom > int(0.98*height):
