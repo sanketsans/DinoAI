@@ -5,6 +5,7 @@ from model import Model
 import random
 import numpy as np
 import torch.optim as optim
+from torch.utils import data
 from collections import deque, namedtuple
 
 BUFFER_SIZE = int(1e5)
@@ -18,7 +19,7 @@ device = 'cpu'
 
 class Agent:
     def __init__(self, state_size, action_size):
-        self.seed = random.seed(5)
+        self.seed = random.seed(42)
         self.state_size = state_size
         self.action_size = action_size
         self.memory = ReplayBuffer(BUFFER_SIZE, action_size)
@@ -34,6 +35,7 @@ class Agent:
         self.optimizer = optim.Adam(self.local_nn.parameters(), lr=0.01)
 
     def step(self, state, action, reward, new_state, done):
+        
         self.memory.add(state, action, reward, new_state, done)
 
         self.t_step = (self.t_step + 1) % UPDATE_EVERY
@@ -60,17 +62,34 @@ class Agent:
 
     def learn(self, experiences, gamma):
         states, actions, rewards, new_states, dones = experiences
+        
+        state_itr = iter(states)
+        action_itr = iter(actions)
+        reward_itr = iter(rewards)
+        new_state_itr = iter(new_states)
+        done_itr = iter(dones)
+                
+        for i in range(int(BATCH_SIZE/4)):
+            state = np.vstack([next(state_itr), next(state_itr), next(state_itr), next(state_itr)])
+            new_state = np.vstack([next(new_state_itr), next(new_state_itr), next(new_state_itr), next(new_state_itr)])
+            
+            new_state = torch.from_numpy(new_state).float().unsqueeze(0).to(device)
+            state = torch.from_numpy(state).float().unsqueeze(0).to(device)
+            
+            action = next(action_itr)
+            reward = next(reward_itr)
+            done = next(done_itr)
+            
+            Q_target_values = self.target_nn(new_state).detach().max(1)[0].unsqueeze(1)
+            Q_target = reward + (gamma*Q_target_values*(1-done))
 
-        Q_target_values = self.target_nn(new_states).detach().max(1)[0].unsqueeze(1)
-        Q_target = rewards + (gamma*Q_target_values*(1-dones))
+            Q_expected = self.local_nn(state).gather(1, action)
 
-        Q_expected = self.local_nn(states).gather(1, actions)
+            loss = F.mse_loss(Q_expected, Q_target)
+            self.optimizer.zero_grad()
 
-        loss = F.mse_loss(Q_expected, Q_target)
-        self.optimizer.zero_grad()
-
-        loss.backward()
-        self.optimizer.step()
+            loss.backward()
+            self.optimizer.step()
 
         self.soft_update(self.local_nn, self.target_nn, TAU)
 
@@ -81,7 +100,7 @@ class Agent:
 
 class ReplayBuffer:
     def __init__(self, buffer_size, action_size):
-        self.seed = random.seed(5)
+        self.seed = random.seed(42)
         self.action_size = action_size
         self.memory = deque(maxlen=buffer_size)
         self.experiences = namedtuple("Experiences", field_names=["state","action","reward","new_state","done"])
@@ -98,6 +117,12 @@ class ReplayBuffer:
         rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().to(device)
         new_states = torch.from_numpy(np.vstack([e.new_state for e in experiences if e is not None])).float().to(device)
         dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None]).astype(np.uint8)).float().to(device)
+        
+        states = data.DataLoader(states)
+        actions = data.DataLoader(actions)
+        rewards = data.DataLoader(rewards)
+        new_states = data.DataLoader(new_states)
+        dones = data.DataLoader(dones)
 
         return states, actions, rewards, new_states, dones
 
