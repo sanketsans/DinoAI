@@ -17,7 +17,7 @@ So, I have 5 state objects and 3 actions ( 0 - nothing to do, 1 - jump, 2- crouc
 
 I used DQN algorithm to train the model with 2 hidden layers, 1 input layer and 1 output layer(nodes might vary for two model scripts). I trained them for 5 hrs on a CPU and the results were still average. 
 
-[![Results]](https://www.youtube.com/watch?v=mrzyq8SkX0A)
+![Check out the Results](https://www.youtube.com/watch?v=mrzyq8SkX0A)
 
 
 ### Approach II 
