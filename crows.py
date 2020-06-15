@@ -18,7 +18,7 @@ class Crow(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self,self.containers)
         self.images,self.rect = self.load_sprite_sheet('ptera.png',2,1,sizex,sizey,-1)
         self.crow_height = [self.height*0.82,self.height*0.75,self.height*0.60,self.height*0.45]
-        self.crow_height_index = random.randrange(0,4)
+        self.crow_height_index = 3 #random.choice((0,3)) ## random.randrange(0,4)
         self.rect.centery = self.crow_height[self.crow_height_index]
         self.rect.left = self.width + self.rect.width
         self.image = self.images[0]

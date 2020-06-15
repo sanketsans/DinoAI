@@ -161,13 +161,13 @@ class DinoGameEnv:
             if len(self.cacti) == 0:
                 self.last_obstacle.empty()
                 self.last_obstacle.add(Cactus(self.gamespeed,40,40))
-#             else:
-#                 for l in self.last_obstacle:
-#                     if l.rect.right < self.width*0.7 and random.randrange(0,200) == 10:
-#                         self.last_obstacle.empty()
-#                         self.last_obstacle.add(Cactus(self.gamespeed, 40, 40))
+            else:
+                for l in self.last_obstacle:
+                    if l.rect.right < self.width*0.7 and random.randrange(0,200) == 10:
+                        self.last_obstacle.empty()
+                        self.last_obstacle.add(Cactus(self.gamespeed, 40, 40))
 
-        if len(self.crows) == 0 and random.randrange(0,200) == 30 and self.counter > 1:
+        if len(self.crows) == 0 and random.randrange(0,200) == 30 and self.counter == 1:
             for l in self.last_obstacle:
                 if l.rect.right < self.width*0.7:
                     self.last_obstacle.empty()
@@ -175,7 +175,7 @@ class DinoGameEnv:
 
         self.playerDino.update()
         self.cacti.update()
-        self.crows.update()
+        # self.crows.update()
         self.new_ground.update()
         self.scb.update(self.playerDino.score)
 
@@ -265,8 +265,8 @@ class DinoGameEnv:
                         break
 
             if action == 1:      ## event.key == pygame.K_DOWN
-                if not (self.playerDino.isJumping and self.playerDino.isDead):
-                    self.playerDino.isDucking = True
+                # if not (self.playerDino.isJumping and self.playerDino.isDead):
+                #     self.playerDino.isDucking = True
 
                 self.play()
 

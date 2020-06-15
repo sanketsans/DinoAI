@@ -58,19 +58,38 @@ class Agent:
         if random.random() > self.epsilon:
             return np.argmax(action_values.cpu().data.numpy())
         else:
-            return np.random.choice(np.arange(0,2))
+            return np.random.choice(np.arange(0,3))
 
     def learn(self, experiences, gamma):
         states, actions, rewards, new_states, dones = experiences
 
-        Q_target_values = self.target_nn(new_states).detach().max(1)[0].unsqueeze(1)
-        Q_target = rewards + (gamma*Q_target_values*(1-dones))
-        Q_expected = self.local_nn(states).gather(1, actions)
-        loss = F.mse_loss(Q_expected, Q_target)
+        state_itr = iter(states)
+        action_itr = iter(actions)
+        reward_itr = iter(rewards)
+        new_state_itr = iter(new_states)
+        done_itr = iter(dones)
 
-        self.optimizer.zero_grad()
-        loss.backward()
-        self.optimizer.step()
+        for i in range(int(BATCH_SIZE/4)):
+            state = np.vstack([next(state_itr), next(state_itr), next(state_itr), next(state_itr)])
+            new_state = np.vstack([next(new_state_itr), next(new_state_itr), next(new_state_itr), next(new_state_itr)])
+
+            new_state = torch.from_numpy(new_state).float().unsqueeze(0).to(device)
+            state = torch.from_numpy(state).float().unsqueeze(0).to(device)
+
+            action = next(action_itr)
+            reward = next(reward_itr)
+            done = next(done_itr)
+
+            Q_target_values = self.target_nn(new_state).detach().max(1)[0].unsqueeze(1)
+            Q_target = reward + (gamma*Q_target_values*(1-done))
+
+            Q_expected = self.local_nn(state).gather(1, action)
+
+            loss = F.mse_loss(Q_expected, Q_target)
+            self.optimizer.zero_grad()
+
+            loss.backward()
+            self.optimizer.step()
 
         self.soft_update(self.local_nn, self.target_nn, TAU)
 
@@ -98,6 +117,12 @@ class ReplayBuffer:
         rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().to(device)
         new_states = torch.from_numpy(np.vstack([e.new_state for e in experiences if e is not None])).float().to(device)
         dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None]).astype(np.uint8)).float().to(device)
+
+        states = data.DataLoader(states)
+        actions = data.DataLoader(actions)
+        rewards = data.DataLoader(rewards)
+        new_states = data.DataLoader(new_states)
+        dones = data.DataLoader(dones)
 
         return states, actions, rewards, new_states, dones
 
